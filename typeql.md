@@ -6,6 +6,10 @@ description: Write and debug TypeQL queries for TypeDB 3.8+. Use when working wi
 
 This skill provides comprehensive guidance for writing TypeQL queries against TypeDB databases.
 
+Always enclose TypeQL code snippets with a code block. 'typeql' should be used as the language identifier.
+
+Use `typeql_check` tool to validate  TypeQL code blocks if available in `$PATH`.
+
 > **Note (3.8+):** Trailing commas are now allowed in all comma-separated contexts (variable lists, statements, reductions) for easier query composition.
 >
 > **Note (3.8+):** Unicode identifiers are now supported. Type names, attribute names, and variable names can use any Unicode XID_START character followed by XID_CONTINUE characters (e.g., `名前`, `prénom`, `город`).
