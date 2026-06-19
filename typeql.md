@@ -8,7 +8,7 @@ This skill provides comprehensive guidance for writing TypeQL queries against Ty
 
 Always enclose TypeQL code snippets with a code block. 'typeql' should be used as the language identifier.
 
-Use `typeql_check` tool to validate  TypeQL code blocks if available in `$PATH`.
+Use `typeql-check` tool to validate TypeQL code blocks if available in `$PATH`.
 
 > **Note (3.8+):** Trailing commas are now allowed in all comma-separated contexts (variable lists, statements, reductions) for easier query composition.
 >
