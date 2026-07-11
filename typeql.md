@@ -13,6 +13,8 @@ Use `typeql-check` tool to validate TypeQL code blocks if available in `$PATH`.
 > **Note (3.8+):** Trailing commas are now allowed in all comma-separated contexts (variable lists, statements, reductions) for easier query composition.
 >
 > **Note (3.8+):** Unicode identifiers are now supported. Type names, attribute names, and variable names can use any Unicode XID_START character followed by XID_CONTINUE characters (e.g., `名前`, `prénom`, `город`).
+>
+> **Note (3.12+):** New this release — the `given` stage for multi-row input (see Quick Reference), the `@doc` / `@meta` schema annotations with their `get_doc(...)` / `get_meta(...)` retrieval built-ins (see Annotations Reference and Built-in Functions), and schema functions definable on abstract types (see Functions).
 
 ## Quick Reference
 
@@ -28,6 +30,7 @@ Use `typeql-check` tool to validate TypeQL code blocks if available in `$PATH`.
 
 ```text
 [with ...]                   -- Inline function preamble
+[given ...]                  -- Bind input rows for multi-row execution (3.12+)
 [define|undefine|redefine]   -- Schema operations
 [match]                      -- Pattern matching
 [insert|put|update|delete]   -- Data mutations
@@ -37,6 +40,27 @@ Use `typeql-check` tool to validate TypeQL code blocks if available in `$PATH`.
 [fetch]                      -- JSON output
 ;                            -- EVERY query MUST end with a semicolon
 ```
+
+### Given (Multi-Row Input) (3.12+)
+
+`given` binds typed variables to input rows supplied alongside the query, then runs the rest of the
+pipeline once per row. This avoids the per-row network and query-compilation overhead of issuing many
+separate queries, and — because the rows are separate from the query string — it is safe from TypeQL
+injection. If a query has a `given` stage, matching rows must be provided (and vice versa).
+
+```typeql
+# Bind one $n per input row, then run the pipeline per row
+given $n: string;
+insert $p isa person, has name == $n;   # value attributes use == in insert
+
+# Given concept rows: run the match against each given $p
+given $p: person;
+match $p has name $n;
+```
+
+Declare each input variable with `given <var>: <type>;` (use `<type>?` for a nullable column, e.g.
+`given $x: integer, $y: integer?;`). Variables bound by `given` cannot be reassigned in later stages.
+Driver APIs supply the actual rows — see the driver README for constructing given inputs.
 
 ---
 
@@ -167,8 +191,12 @@ define
 | `@independent` | `owns tag @independent`         | Attribute exists independently of owner |
 | `@distinct`    | `owns item @distinct`           | Each value can only be owned once       |
 | `@subkey(...)` | `owns code @subkey(region)`     | Composite key with another attribute    |
+| `@doc(...)`    | `person @doc("a client")`       | Human-readable description (3.12+)       |
+| `@meta(...)`   | `person @meta("icon","p.png")`  | Key-value metadata, any number (3.12+)   |
 
 Note:  `@key` and `@unique` can only be put on `owns`, not directly on an attribute value definition.
+
+Note (3.12+): `@doc("text")` and `@meta("key","value")` attach to any type, to `owns`/`plays`/`relates`/`sub` capabilities, and to functions (placed after the signature, before the `:`). Neither is inherited. Read them back with the `get_doc(...)` / `get_meta(...)` built-ins (see Built-in Functions).
 
 ---
 
@@ -657,6 +685,19 @@ fetch {
   "iid": iid($p),
   "type": label($t)                      # label() on TYPE variable $t
 };
+
+# Read @doc / @meta schema annotations (3.12+)
+# NOTE: these take TYPE variables - use isa! to bind an instance's exact type.
+match
+  $p isa! $t, has email "alice@example.com";
+fetch {
+  "type": label($t),
+  "doc":  get_doc($t),                   # description set via @doc("...")
+  "icon": get_meta("icon", $t)           # value set via @meta("icon", "...")
+};
+# Capability variants: get_owns_doc / get_plays_doc / get_relates_doc / get_sub_doc,
+# and get_owns_meta / get_plays_meta / get_relates_meta / get_sub_meta
+# (each *_meta takes the key first; *_all_meta variants stream all key-value pairs).
 ```
 
 ---
@@ -744,6 +785,11 @@ fetch {
 ## 10. Functions
 
 Define reusable query logic in schema.
+
+> **Note (3.12+):** Schema functions may be defined on abstract types (type-checked through the
+> abstract type even when no concrete type satisfies the pattern), letting you split function
+> definitions across modular schema files. Calling such a function from a query or preamble still
+> requires the pattern to be concretely satisfiable, otherwise you get a type-inference error.
 
 ### Function Definition
 
