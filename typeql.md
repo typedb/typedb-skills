@@ -168,14 +168,6 @@ define
     plays marriage:spouse;
 ```
 
-### Type Aliases
-
-```typeql
-define
-  # Create an alias for an existing type
-  attribute username alias name;  # username is an alias for name
-```
-
 ### Annotations Reference
 
 | Annotation     | Usage                           | Description                             |
@@ -225,9 +217,6 @@ undefine
 
   # Remove function
   fun get_active_users;
-
-  # Remove struct
-  struct address;
 ```
 
 ### Redefine (Modify Existing Schema)
@@ -609,9 +598,20 @@ reduce
 | `mean($var)`   | `mean($score)`           | Average            |
 | `median($var)` | `median($score)`         | Median             |
 | `std($var)`    | `std($score)`            | Standard deviation |
-| `list($var)`   | `list($name)`            | Collect into list  |
 
 ---
+
+### Continuing pipelines after reducing
+
+```typeql
+match
+  $p isa person, has salary $s;
+reduce $max = max($s);
+# Second match required to continue after the reduce
+match
+let $max_quartered = $max / 4;
+select $max_quartered;
+```
 
 ## 7. Expressions and Computed Values
 
@@ -631,6 +631,15 @@ fetch {
   "product": $p.name,
   "total": $total
 };
+```
+
+### String Operators
+
+```typeql
+match
+  $u isa user, has first_name $fn, has last_name $ln;
+let $full = $fn + " " + $ln;             # Concatenation
+fetch { "full_name": $full };  
 ```
 
 ### Assignment and Literals
@@ -664,12 +673,6 @@ fetch {
   "floored": $floored
 };
 
-# String concatenation
-match
-  $u isa user, has first_name $fn, has last_name $ln;
-let $full = concat($fn, " ", $ln);
-fetch { "full_name": $full };
-
 # Get IID of a concept (3.8+)
 match
   $p isa person, has email "alice@example.com";
@@ -702,87 +705,7 @@ fetch {
 
 ---
 
-## 8. List Operations
-
-### List Literals
-
-```typeql
-match
-  $p isa person, has name $name;
-let $tags = ["active", "verified", "premium"];  # List literal
-fetch { "name": $name, "tags": $tags };
-```
-
-### List Indexing
-
-```typeql
-match
-  $p isa person, has score $scores;  # Multi-valued attribute
-let $first = $scores[0];             # First element (0-indexed)
-let $second = $scores[1];            # Second element
-fetch { "first_score": $first };
-```
-
-### List Slicing
-
-```typeql
-match
-  $p isa person, has score $scores;
-let $top_three = $scores[0..3];      # Elements 0, 1, 2
-let $rest = $scores[3..10];          # Elements 3 through 9
-fetch { "top_scores": $top_three };
-```
-
----
-
-## 9. Structs
-
-### Struct Definition
-
-```typeql
-define
-  # Define a struct type
-  struct address:
-    street value string,
-    city value string,
-    zip value string?,      # Optional field (nullable)
-    country value string;
-```
-
-WARNING: structs are not yet implemented as of TypeDB 3.8.0, so should not be used.
-
-### Using Structs
-
-```typeql
-# Insert with struct value
-insert
-  $p isa person,
-    has name "Alice",
-    has home_address { street: "123 Main St", city: "Boston", zip: "02101", country: "USA" };
-
-# Match struct fields
-match
-  $p isa person, has home_address $addr;
-  $addr isa address { city: "Boston" };
-fetch { "person": $p.name };
-```
-
-### Struct Destructuring
-
-```typeql
-# Destructure struct in let
-match
-  $p isa person, has home_address $addr;
-let { city: $city, zip: $zip } = $addr;
-fetch {
-  "person": $p.name,
-  "city": $city
-};
-```
-
----
-
-## 10. Functions
+## 9. Functions
 
 Define reusable query logic in schema.
 
@@ -797,7 +720,7 @@ Define reusable query logic in schema.
 define
 
 # Return stream of values
-fun get_active_users() -> { string }:
+fun get_active_users() -> { email }:
   match
     $u isa user, has status == "active", has email $e;
   return { $e };
@@ -809,7 +732,7 @@ fun count_users() -> integer:
   return count;
 
 # Function with parameters
-fun get_user_projects($user_email: string) -> { string }:
+fun get_user_projects($user_email: string) -> { name }:
   match
     $u isa user, has email == $user_email;
     membership (member: $u, project: $p);
@@ -817,20 +740,20 @@ fun get_user_projects($user_email: string) -> { string }:
   return { $name };
 
 # Return multiple values in stream
-fun get_user_details($email: string) -> { string, string }:
+fun get_user_details($email: string) -> { name, age }:
   match
-    $u isa user, has email == $email, has name $n, has role $r;
-  return { $n, $r };
+    $u isa user, has email == $email, has name $n, has age $a;
+  return { $n, $a };
 
 # Return first match only
-fun get_oldest_user() -> string:
+fun get_oldest_user() -> name:
   match
     $u isa user, has name $n, has age $a;
   sort $a desc;
   return first $n;
 
 # Return last match only
-fun get_youngest_user() -> string:
+fun get_youngest_user() -> name:
   match
     $u isa user, has name $n, has age $a;
   sort $a desc;
@@ -883,9 +806,34 @@ match
 fetch { "engineer": $user.name };
 ```
 
+### Multiple inline functions
+
+```typeql
+# One "with" block per function
+with
+  fun active_in_dept($dept: string) -> { user }:
+    match
+      $u isa user, has department == $dept, has status "active";
+    return { $u };
+
+with
+  fun inactive_in_dept($dept: string) -> { user }:
+    match
+      $u isa user, has department == $dept, has status "inactive";
+    return { $u };
+
+match
+  let $user in active_in_dept("Engineering");
+  let $user2 in inactive_in_dept("Finance");
+fetch { 
+  "engineer": $user.name,
+  "ex-finance": $user2.name 
+};
+```
+
 ---
 
-## 11. IID (Internal Identifier) Operations
+## 10. IID (Internal Identifier) Operations
 
 ```typeql
 # Match by IID (for direct lookups)
@@ -913,12 +861,12 @@ fetch {
 
 ---
 
-## 12. Rules (Inference)
+## 11. Rules (Inference)
 TypeDB 3.0 and on no longer uses rules, and uses only functions instead.
 
 ---
 
-## 13. Common Patterns
+## 12. Common Patterns
 
 Note: clauses like `match`, `insert`, `update`, and `delete` are not themselves terminated with a trailing semicolon — each statement within them already ends in `;`. The `fetch` clause is the exception: the closing `}` of the fetch object **must** be followed by a terminating `;`.
 
@@ -974,7 +922,7 @@ match
 
 ---
 
-## 14. Critical Pitfalls
+## 13. Critical Pitfalls
 
 ### TypeDB 3 relation syntax
 
@@ -1096,7 +1044,7 @@ match {
 
 ---
 
-## 15. CLI Notes
+## 14. CLI Notes
 
 ### Command Execution
 
@@ -1125,7 +1073,7 @@ commit
 
 ---
 
-## 16. Value Types Reference
+## 15. Value Types Reference
 
 | TypeQL Type   | Description            | Example Literal                        |
 | ------------- | ---------------------- | -------------------------------------- |
@@ -1154,7 +1102,7 @@ PT1H30M45S  = 1 hour, 30 minutes, 45 seconds
 
 ---
 
-## 17. Debugging Queries
+## 16. Debugging Queries
 
 ### Test Match Before Write
 
@@ -1214,7 +1162,7 @@ reduce $count = count;
 
 If count > 0, problem is in the commented-out half. If still 0, problem is in the active half. Repeat to isolate the exact constraint.
 
-### Debugging sulti-stage Pipelines
+### Debugging multi-stage Pipelines
 
 When a pipeline (e.g., `match → reduce → match → update`) writes nothing, run successive **prefixes** to find where data stops flowing:
 
@@ -1236,7 +1184,7 @@ reduce $count = count;
   
 ---
 
-## 18. Complete Operator Reference
+## 17. Complete Operator Reference
 
 ### Comparison Operators
 
@@ -1275,7 +1223,6 @@ reduce $count = count;
 | `min($a,$b)` | Minimum of two values            | `min($x, 100)`      |
 | `iid($var)`  | Get internal identifier (3.8+)   | `iid($p)`           |
 | `label($t)`  | Get type label (TYPE var only!)  | `label($t)`         |
-| `concat(…)`  | Concatenate strings              | `concat($a," ",$b)` |
 
 ### Pattern Keywords
 
