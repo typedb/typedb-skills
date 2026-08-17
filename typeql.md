@@ -705,7 +705,7 @@ fetch {
 
 ---
 
-## 9. Functions
+## 8. Functions
 
 Define reusable query logic in schema.
 
@@ -833,7 +833,7 @@ fetch {
 
 ---
 
-## 10. IID (Internal Identifier) Operations
+## 9. IID (Internal Identifier) Operations
 
 ```typeql
 # Match by IID (for direct lookups)
@@ -861,12 +861,12 @@ fetch {
 
 ---
 
-## 11. Rules (Inference)
+## 10. Rules (Inference)
 TypeDB 3.0 and on no longer uses rules, and uses only functions instead.
 
 ---
 
-## 12. Common Patterns
+## 11. Common Patterns
 
 Note: clauses like `match`, `insert`, `update`, and `delete` are not themselves terminated with a trailing semicolon — each statement within them already ends in `;`. The `fetch` clause is the exception: the closing `}` of the fetch object **must** be followed by a terminating `;`.
 
@@ -922,7 +922,7 @@ match
 
 ---
 
-## 13. Critical Pitfalls
+## 12. Critical Pitfalls
 
 ### TypeDB 3 relation syntax
 
@@ -1044,7 +1044,7 @@ match {
 
 ---
 
-## 14. CLI Notes
+## 13. CLI Notes
 
 ### Command Execution
 
@@ -1073,7 +1073,7 @@ commit
 
 ---
 
-## 15. Value Types Reference
+## 14. Value Types Reference
 
 | TypeQL Type   | Description            | Example Literal                        |
 | ------------- | ---------------------- | -------------------------------------- |
@@ -1102,7 +1102,7 @@ PT1H30M45S  = 1 hour, 30 minutes, 45 seconds
 
 ---
 
-## 16. Debugging Queries
+## 15. Debugging Queries
 
 ### Test Match Before Write
 
@@ -1184,7 +1184,7 @@ reduce $count = count;
   
 ---
 
-## 17. Complete Operator Reference
+## 16. Complete Operator Reference
 
 ### Comparison Operators
 
