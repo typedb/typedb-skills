@@ -1237,3 +1237,11 @@ reduce $count = count;
 | `not`   | Negation                             |
 | `try`   | Optional pattern                     |
 
+## 17. Upcoming features
+
+The following features are planned for TypeQL, but have not yet been implemented. Attempting to use them will fail.
+
+- Lists (e.g. `[1, 2, 3, 4]`)
+- Structs (structured/composite data types)
+- Type aliases through the `alias` keyword
+- Cascading deletion through the `@cascade` annotation
