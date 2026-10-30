@@ -179,10 +179,7 @@ define
 | `@range(...)`  | `value integer @range(1..100)`  | Value range                             |
 | `@values(...)` | `value string @values("a","b")` | Enum-like constraint                    |
 | `@abstract`    | `entity @abstract`              | Cannot be instantiated                  |
-| `@cascade`     | `owns ref @cascade`             | Cascade delete when owner deleted       |
 | `@independent` | `owns tag @independent`         | Attribute exists independently of owner |
-| `@distinct`    | `owns item @distinct`           | Each value can only be owned once       |
-| `@subkey(...)` | `owns code @subkey(region)`     | Composite key with another attribute    |
 | `@doc(...)`    | `person @doc("a client")`       | Human-readable description (3.12+)       |
 | `@meta(...)`   | `person @meta("icon","p.png")`  | Key-value metadata, any number (3.12+)   |
 
